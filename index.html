@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>실적관리 대시보드 - 매니저</title>
+<style>
+  :root{
+    --navy:#0d1b3e; --navy2:#152a5c; --blue:#2563eb; --blue-d:#1d4ed8;
+    --blue-l:#3b82f6; --sky:#eff4ff; --sky2:#dbe7ff;
+    --green:#16a34a; --green-l:#e7f6ec; --green-b:#34a853;
+    --gold:#f59e0b; --gold-l:#fdf3e0;
+    --red:#ef4444; --text:#1e293b; --sub:#64748b; --line:#e5eaf2;
+    --bg:#f2f5fa; --card:#ffffff;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{font-family:'Malgun Gothic','Apple SD Gothic Neo','Noto Sans KR',sans-serif;background:var(--bg);color:var(--text);font-size:13px;}
+  .app{display:flex;min-height:100vh;}
+
+  /* ===== Sidebar ===== */
+  .sidebar{width:64px;background:linear-gradient(180deg,#0d1b3e,#132a56);color:#fff;display:flex;flex-direction:column;align-items:center;padding:10px 0;position:fixed;top:0;bottom:0;left:0;z-index:50;}
+  .logo{width:38px;height:38px;background:var(--blue);border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:19px;margin-bottom:14px;}
+  .menu{display:flex;flex-direction:column;gap:4px;width:100%;align-items:center;}
+  .menu-item{width:52px;padding:8px 0;border-radius:9px;display:flex;flex-direction:column;align-items:center;gap:3px;font-size:9.5px;color:#9fb3d9;cursor:pointer;text-align:center;line-height:1.25;}
+  .menu-item .mi{font-size:16px;}
+  .menu-item.active{background:var(--blue);color:#fff;}
+  .menu-item:hover{background:rgba(255,255,255,.08);}
+
+  /* ===== Main ===== */
+  .main{margin-left:64px;flex:1;padding:14px 18px 0;min-width:0;}
+
+  /* Header */
+  .header{display:flex;align-items:center;justify-content:space-between;background:#fff;border-radius:12px;padding:10px 18px;box-shadow:0 1px 4px rgba(15,35,80,.06);}
+  .h-left{display:flex;align-items:center;gap:9px;}
+  .h-title{font-size:19px;font-weight:800;}
+  .badge-mgr{background:#123; color:#cfe0ff;background:linear-gradient(135deg,#12305e,#1d4ed8);color:#dbe7ff;font-size:11px;padding:3px 10px;border-radius:20px;font-weight:700;}
+  .h-right{display:flex;align-items:center;gap:14px;}
+  .bell{position:relative;font-size:18px;cursor:pointer;}
+  .bell .dot{position:absolute;top:-2px;right:-4px;width:8px;height:8px;background:var(--red);border-radius:50%;}
+  .user{display:flex;align-items:center;gap:6px;font-weight:700;}
+  .user .dot{width:8px;height:8px;background:var(--red);border-radius:50%;}
+  .btn-mgr{background:var(--blue);color:#fff;border:none;border-radius:20px;padding:6px 14px;font-weight:700;cursor:pointer;font-size:12px;}
+
+  /* Filter bar */
+  .filterbar{display:flex;align-items:center;gap:10px;background:#fff;border-radius:12px;padding:10px 16px;margin-top:10px;box-shadow:0 1px 4px rgba(15,35,80,.06);flex-wrap:wrap;}
+  .f-label{font-weight:700;color:#334155;}
+  .f-box{display:flex;align-items:center;gap:6px;border:1.5px solid var(--line);border-radius:8px;padding:6px 10px;background:#fff;font-weight:600;cursor:pointer;white-space:nowrap;}
+  .sel{border:1.5px solid var(--line);border-radius:8px;padding:6px 10px;background:#fff;font-weight:600;cursor:pointer;color:#334155;}
+  .f-spacer{flex:1;}
+  .btn{border:none;border-radius:8px;padding:7px 14px;font-weight:700;cursor:pointer;font-size:12.5px;white-space:nowrap;}
+  .btn-blue{background:var(--blue);color:#fff;}
+  .btn-ghost{background:#fff;color:#475569;border:1.5px solid var(--line);}
+  .btn-green{background:#fff;color:#16a34a;border:1.5px solid #bbe7cb;}
+
+  /* Tabs */
+  .tabs{display:flex;gap:8px;margin-top:12px;}
+  .tab{flex:1;display:flex;align-items:center;justify-content:center;gap:8px;padding:11px;border-radius:11px;background:#fff;border:1.5px solid var(--line);font-weight:700;color:#64748b;cursor:pointer;font-size:13.5px;}
+  .tab.active{background:var(--blue);border-color:var(--blue);color:#fff;box-shadow:0 3px 8px rgba(37,99,235,.35);}
+  .tab .sub{font-weight:500;font-size:11.5px;opacity:.85;}
+
+  /* KPI */
+  .kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-top:12px;}
+  .kpi{background:var(--card);border-radius:12px;padding:12px 16px;display:flex;align-items:center;gap:12px;box-shadow:0 1px 4px rgba(15,35,80,.06);}
+  .kpi .ic{width:40px;height:40px;border-radius:10px;background:var(--sky);display:flex;align-items:center;justify-content:center;font-size:18px;color:var(--blue);flex-shrink:0;}
+  .kpi .t{font-size:11.5px;color:var(--sub);font-weight:600;}
+  .kpi .v{font-size:20px;font-weight:800;margin-top:2px;}
+  .kpi .v small{font-size:12px;font-weight:700;color:var(--sub);}
+
+  /* Cards grid */
+  .grid3{display:grid;grid-template-columns:1fr 1.35fr 1.35fr;gap:10px;margin-top:12px;}
+  .grid3b{display:grid;grid-template-columns:1.15fr 1fr 1.15fr;gap:10px;margin-top:12px;}
+  .card{background:var(--card);border-radius:12px;padding:14px 16px;box-shadow:0 1px 4px rgba(15,35,80,.06);min-width:0;}
+  .card h3{font-size:13.5px;font-weight:800;display:flex;align-items:center;gap:6px;margin-bottom:10px;}
+  .card h3 .ci{color:var(--blue);}
+  .card h3 .cap{font-size:11px;color:var(--sub);font-weight:600;}
+
+  /* Donut */
+  .donut-wrap{display:flex;flex-direction:column;align-items:center;}
+  .donut-center{position:absolute;top:50%;left:50%;transform:translate(-50%,-52%);text-align:center;}
+  .donut-center .a{font-size:11.5px;color:var(--sub);font-weight:700;}
+  .donut-center .b{font-size:22px;font-weight:800;color:var(--blue);}
+  .donut-center .c{font-size:11.5px;color:var(--sub);font-weight:700;}
+  .donut-note{display:flex;gap:14px;margin-top:8px;font-size:11.5px;color:var(--sub);font-weight:600;}
+  .donut-note b{color:var(--text);}
+
+  /* Process flow */
+  .flow{display:flex;align-items:center;gap:6px;}
+  .flow-step{flex:1;border-radius:11px;padding:12px 10px;text-align:center;}
+  .flow-step .fs-ic{font-size:17px;}
+  .flow-step .fs-t{font-weight:800;font-size:13px;margin:3px 0 6px;}
+  .flow-step .fs-v{font-size:17px;font-weight:800;}
+  .flow-step .fs-p{font-size:11px;font-weight:700;margin:2px 0 6px;}
+  .bar{height:7px;background:#e8edf5;border-radius:5px;overflow:hidden;margin:5px 0 6px;}
+  .bar i{display:block;height:100%;border-radius:5px;}
+  .fs-sub{font-size:10.5px;color:var(--sub);font-weight:600;}
+  .fs-sub.warn{color:var(--gold);}
+  .flow-arrow{font-size:17px;color:#94a3b8;font-weight:800;}
+  .fs-input{background:var(--sky);}
+  .fs-review{background:var(--green-l);}
+  .fs-inspect{background:var(--gold-l);}
+
+  /* Chart toggles + legend */
+  .chart-head{display:flex;align-items:center;justify-content:space-between;}
+  .seg{display:flex;gap:0;border:1.5px solid var(--line);border-radius:8px;overflow:hidden;}
+  .seg button{border:none;background:#fff;padding:5px 12px;font-weight:700;font-size:11.5px;color:var(--sub);cursor:pointer;}
+  .seg button.on{background:var(--blue);color:#fff;}
+  .legend{display:flex;gap:14px;font-size:11px;color:var(--sub);font-weight:600;margin-top:6px;}
+  .legend span{display:flex;align-items:center;gap:5px;}
+  .legend i{width:16px;height:4px;border-radius:2px;display:inline-block;}
+  .legend i.dash{height:0;border-top:2px dashed #94a3b8;background:none!important;}
+
+  /* Tables */
+  table{width:100%;border-collapse:collapse;font-size:12px;}
+  th{background:#f6f8fc;color:#475569;font-size:11px;font-weight:700;padding:7px 8px;text-align:left;border-bottom:1.5px solid var(--line);white-space:nowrap;}
+  td{padding:7px 8px;border-bottom:1px solid #eef2f8;color:#334155;font-weight:600;white-space:nowrap;}
+  tr:last-child td{border-bottom:none;}
+  td.num,th.num{text-align:right;}
+  .tsum td{background:#f6f8fc;font-weight:800;color:var(--text);}
+  .rank{display:inline-flex;width:20px;height:20px;border-radius:50%;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:#fff;}
+  .rank.g{background:var(--gold);} .rank.s{background:#94a3b8;}
+  .day-sat{color:var(--blue);font-weight:800;}
+  .day-sun{color:var(--red);font-weight:800;}
+
+  /* worker progress chips */
+  .steps{display:flex;align-items:center;gap:4px;}
+  .chip{display:inline-flex;align-items:center;gap:3px;padding:2.5px 7px;border-radius:6px;font-size:10.5px;font-weight:800;border:1px solid transparent;}
+  .chip.done{background:var(--green-l);color:var(--green);border-color:#bfe6cd;}
+  .chip.wait{background:var(--sky);color:var(--blue);border-color:#c7d8fb;}
+  .chip.idle{background:#f1f5f9;color:#94a3b8;border-color:#e2e8f0;}
+  .step-line{color:#cbd5e1;font-weight:800;}
+  .rate-mini{height:6px;background:#eef2f8;border-radius:4px;overflow:hidden;width:90px;}
+  .rate-mini i{display:block;height:100%;background:var(--blue);border-radius:4px;}
+  .chev{color:#cbd5e1;font-weight:800;text-align:right;}
+
+  /* status table colors */
+  .st-dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px;}
+
+  /* pending cards */
+  .pend{display:flex;align-items:center;gap:10px;background:#f8fafd;border:1px solid #eef2f8;border-radius:10px;padding:10px 12px;margin-bottom:9px;}
+  .pend:last-child{margin-bottom:0;}
+  .pend .pi{width:34px;height:34px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:16px;background:var(--sky);color:var(--blue);flex-shrink:0;}
+  .pend .pt{font-weight:800;font-size:12.5px;}
+  .pend .ps{font-size:10.5px;color:var(--sub);font-weight:600;margin-top:2px;}
+  .pend .pv{margin-left:auto;font-size:18px;font-weight:800;color:var(--blue);white-space:nowrap;}
+  .pend .pv small{font-size:11px;color:var(--sub);font-weight:700;}
+
+  /* footer */
+  .footer{display:flex;align-items:center;gap:18px;background:#fff;border-radius:12px;margin:12px 0 16px;padding:9px 16px;font-size:11px;color:var(--sub);box-shadow:0 1px 4px rgba(15,35,80,.06);flex-wrap:wrap;}
+  .footer .fi{color:var(--blue);font-weight:800;}
+  .footer b{color:#334155;}
+
+  .hidden{display:none!important;}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- ================= Sidebar ================= -->
+  <div class="sidebar">
+    <div class="logo">📊</div>
+    <div class="menu">
+      <div class="menu-item active"><span class="mi">🏠</span>대시보드</div>
+      <div class="menu-item"><span class="mi">👥</span>작업자 관리</div>
+      <div class="menu-item"><span class="mi">🗂️</span>작업 운영</div>
+      <div class="menu-item"><span class="mi">🎯</span>목표 관리</div>
+      <div class="menu-item"><span class="mi">📈</span>통계/분석</div>
+      <div class="menu-item"><span class="mi">🔔</span>이슈/알림</div>
+      <div class="menu-item"><span class="mi">⚙️</span>설정</div>
+    </div>
+  </div>
+
+  <!-- ================= Main ================= -->
+  <div class="main">
+
+    <!-- Header -->
+    <div class="header">
+      <div class="h-left">
+        <span style="color:var(--blue);font-size:18px;">📊</span>
+        <span class="h-title">실적관리 대시보드</span>
+        <span class="badge-mgr">매니저</span>
+      </div>
+      <div class="h-right">
+        <div class="bell">🔔<span class="dot"></span></div>
+        <div class="user"><span class="dot"></span>김매니저</div>
+        <button class="btn-mgr">매니저 ▾</button>
+      </div>
+    </div>
+
+    <!-- Filter bar -->
+    <div class="filterbar">
+      <span class="f-label">조회 기간 (작업일)</span>
+      <div class="f-box">📅 <b>2026-05-05</b> ~ <b>2026-11-11</b> ▾</div>
+      <span class="f-label">작업자</span>
+      <select class="sel"><option>전체</option><option>박지훈</option><option>최수연</option><option>김매니저</option><option>이지민</option><option>정현우</option></select>
+      <span class="f-label">프로젝트</span>
+      <select class="sel"><option>전체</option><option>라벨링 A</option><option>라벨링 B</option></select>
+      <div class="f-spacer"></div>
+      <button class="btn btn-blue">🔍 조회</button>
+      <button class="btn btn-ghost">🔄 초기화</button>
+      <button class="btn btn-green">📥 엑셀다운로드</button>
+    </div>
+
+    <!-- Tabs -->
+    <div class="tabs">
+      <div class="tab active" id="tabBtn1" onclick="switchTab(1)">👤 <span>작업자 기준 <span class="sub">(작업자별 실적 및 달성 현황)</span></span></div>
+      <div class="tab" id="tabBtn2" onclick="switchTab(2)">🗂️ <span>공정별 결과 <span class="sub">(작업 완성본 기준 실적 및 달성 현황)</span></span></div>
+    </div>
+
+    <!-- ================= KPI (shared) ================= -->
+    <div class="kpis">
+      <div class="kpi"><div class="ic">🗂️</div><div><div class="t">완성본 목표</div><div class="v">3,000<small>건</small></div></div></div>
+      <div class="kpi"><div class="ic">🗂️</div><div><div class="t">완성본 완료</div><div class="v">2,760<small>건</small></div></div></div>
+      <div class="kpi"><div class="ic">✅</div><div><div class="t">완료율</div><div class="v">92.0<small>%</small></div></div></div>
+      <div class="kpi"><div class="ic">🕐</div><div><div class="t">총 작업시간</div><div class="v">1,356:20</div></div></div>
+      <div class="kpi"><div class="ic">📈</div><div><div class="t">일 평균 처리량(완성본)</div><div class="v">51.1<small>건/일</small></div></div></div>
+    </div>
+
+    <!-- =================================================-->
+    <!-- ============== TAB 1 : 작업자별 =================-->
+    <!-- =================================================-->
+    <div id="panel1">
+
+      <div class="grid3">
+        <!-- Donut -->
+        <div class="card">
+          <h3><span class="ci">📊</span>작업자별 완료율 <span class="cap">(완성본 기준)</span></h3>
+          <div class="donut-wrap">
+            <div style="position:relative;width:170px;height:170px;">
+              <svg width="170" height="170" viewBox="0 0 170 170">
+                <circle cx="85" cy="85" r="66" fill="none" stroke="#e8edf5" stroke-width="20"/>
+                <circle cx="85" cy="85" r="66" fill="none" stroke="#2563eb" stroke-width="20"
+                  stroke-dasharray="382 414.7" stroke-linecap="round" transform="rotate(-90 85 85)"/>
+              </svg>
+              <div class="donut-center">
+                <div class="a">완성본</div>
+                <div class="b">2,760건</div>
+                <div class="c">(92.0%)</div>
+              </div>
+            </div>
+            <div class="donut-note"><span>목표 <b>3,000건</b></span><span>잔여 <b>240건 (8.0%)</b></span></div>
+          </div>
+        </div>
+
+        <!-- Worker progress -->
+        <div class="card">
+          <h3><span class="ci">👥</span>작업자별 진행 현황 <span class="cap">(전체 5명)</span></h3>
+          <table>
+            <thead><tr><th>작업자</th><th>진행 현황 (입력→검토→검수)</th><th class="num">완성본</th><th class="num">완료율</th><th></th></tr></thead>
+            <tbody id="workerProg"></tbody>
+          </table>
+        </div>
+
+        <!-- Trend -->
+        <div class="card">
+          <div class="chart-head">
+            <h3 style="margin:0;"><span class="ci">📈</span>완성본 누적 완료 추이 <span class="cap">(조회 기간)</span></h3>
+            <div class="seg" id="seg1"><button class="on">일별</button><button>주별</button><button>월별</button></div>
+          </div>
+          <div id="chart1"></div>
+          <div class="legend">
+            <span><i style="background:#2563eb;"></i>완성본(누적)</span>
+            <span><i class="dash"></i>목표(누적)</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid3b">
+        <!-- Worker summary -->
+        <div class="card">
+          <h3><span class="ci">🏅</span>작업자별 실적 요약 <span class="cap">(완성본 기준)</span></h3>
+          <table>
+            <thead><tr><th>순위</th><th>작업자</th><th class="num">완성본</th><th class="num">완료율</th><th class="num">작업시간</th></tr></thead>
+            <tbody id="workerSum"></tbody>
+          </table>
+        </div>
+
+        <!-- Pending -->
+        <div class="card">
+          <h3><span class="ci">⏳</span>미완료 작업 현황 <span class="cap">(잔여 240건)</span></h3>
+          <div class="pend"><div class="pi">📋</div><div><div class="pt">검수 미완료</div><div class="ps">(검토 완료 → 검수 대기/진행)</div></div><div class="pv">180<small>건</small></div></div>
+          <div class="pend"><div class="pi">👤</div><div><div class="pt">검토 미완료</div><div class="ps">(입력 완료 → 검토 대기/진행)</div></div><div class="pv">60<small>건</small></div></div>
+          <div class="pend"><div class="pi">⌨️</div><div><div class="pt">입력 미완료</div><div class="ps">(미입력)</div></div><div class="pv">0<small>건</small></div></div>
+        </div>
+
+        <!-- Worker process table -->
+        <div class="card">
+          <h3><span class="ci">🗂️</span>작업자별 공정 완료 현황 <span class="cap">(조회 기간)</span></h3>
+          <table>
+            <thead><tr><th>작업자</th><th class="num">입력 완료</th><th class="num">검토 완료</th><th class="num">검수 완료</th><th class="num">완성본(누적)</th></tr></thead>
+            <tbody id="workerProc"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="footer">
+        <span class="fi">ℹ ※ 지표 기준 안내</span>
+        <span>• <b>완성본</b>: 입력 → 검토 → 검수를 모두 완료한 1건의 결과물</span>
+        <span>• <b>작업자별 완료율</b>: 작업자별 완성본 건수 ÷ 목표 건수(작업자별 할당량)</span>
+        <span>• <b>잔여건수</b>: 목표 건수 - 완성본 건수</span>
+      </div>
+    </div>
+
+    <!-- =================================================-->
+    <!-- ============== TAB 2 : 공정별 ===================-->
+    <!-- =================================================-->
+    <div id="panel2" class="hidden">
+
+      <div class="grid3">
+        <!-- Donut -->
+        <div class="card">
+          <h3><span class="ci">📊</span>완성본 완료율 <span class="cap">(입력·검토·검수 모두 완료)</span></h3>
+          <div class="donut-wrap">
+            <div style="position:relative;width:170px;height:170px;">
+              <svg width="170" height="170" viewBox="0 0 170 170">
+                <circle cx="85" cy="85" r="66" fill="none" stroke="#e8edf5" stroke-width="20"/>
+                <circle cx="85" cy="85" r="66" fill="none" stroke="#2563eb" stroke-width="20"
+                  stroke-dasharray="382 414.7" stroke-linecap="round" transform="rotate(-90 85 85)"/>
+              </svg>
+              <div class="donut-center">
+                <div class="a">완성본</div>
+                <div class="b">2,760건</div>
+                <div class="c">(92.0%)</div>
+              </div>
+            </div>
+            <div class="donut-note"><span>목표 <b>3,000건</b></span><span>잔여 <b>240건 (8.0%)</b></span></div>
+          </div>
+        </div>
+
+        <!-- Process flow -->
+        <div class="card">
+          <h3><span class="ci">🔄</span>공정별 진행 현황 <span class="cap">(각 공정별 완료 건수)</span></h3>
+          <div class="flow">
+            <div class="flow-step fs-input">
+              <div class="fs-ic">⌨️</div><div class="fs-t">① 입력</div>
+              <div class="fs-v">3,000건</div><div class="fs-p" style="color:var(--blue);">(100.0%)</div>
+              <div class="bar"><i style="width:100%;background:var(--blue);"></i></div>
+              <div class="fs-sub">목표 3,000건</div>
+            </div>
+            <div class="flow-arrow">➜</div>
+            <div class="flow-step fs-review">
+              <div class="fs-ic">🔍</div><div class="fs-t">② 검토</div>
+              <div class="fs-v">2,940건</div><div class="fs-p" style="color:var(--green);">(98.0%)</div>
+              <div class="bar"><i style="width:98%;background:var(--green);"></i></div>
+              <div class="fs-sub">목표 3,000건</div>
+              <div class="fs-sub warn">미완료 60건</div>
+            </div>
+            <div class="flow-arrow">➜</div>
+            <div class="flow-step fs-inspect">
+              <div class="fs-ic">✅</div><div class="fs-t">③ 검수</div>
+              <div class="fs-v">2,760건</div><div class="fs-p" style="color:var(--gold);">(92.0%)</div>
+              <div class="bar"><i style="width:92%;background:var(--gold);"></i></div>
+              <div class="fs-sub">목표 3,000건</div>
+              <div class="fs-sub warn">미완료 240건</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Trend -->
+        <div class="card">
+          <div class="chart-head">
+            <h3 style="margin:0;"><span class="ci">📈</span>완성본 누적 완료 추이 <span class="cap">(조회 기간)</span></h3>
+            <div class="seg" id="seg2"><button class="on">일별</button><button>주별</button><button>월별</button></div>
+          </div>
+          <div id="chart2"></div>
+          <div class="legend">
+            <span><i style="background:#2563eb;"></i>입력(누적)</span>
+            <span><i style="background:#22a55b;"></i>검토(누적)</span>
+            <span><i style="background:#f0a500;"></i>검수(누적)</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid3b">
+        <!-- Completion status -->
+        <div class="card">
+          <h3><span class="ci">📊</span>작업 완결 현황 <span class="cap">(전체 3,000건 기준)</span></h3>
+          <div style="display:flex;align-items:center;gap:8px;font-size:11.5px;font-weight:700;margin-bottom:4px;">
+            <span style="color:var(--sub);">완결 <span style="color:var(--sub);font-weight:600;">(입력·검토·검수 완료)</span></span>
+            <div class="bar" style="flex:1;height:12px;border-radius:7px;display:flex;">
+              <i style="width:92%;background:var(--blue);border-radius:7px 0 0 7px;"></i>
+              <i style="width:8%;background:#d7dee9;border-radius:0 7px 7px 0;"></i>
+            </div>
+            <span style="color:var(--sub);">미완결</span>
+          </div>
+          <div style="text-align:center;font-weight:800;color:var(--blue);font-size:12.5px;margin-bottom:8px;">2,760건 (92.0%) <span style="color:var(--sub);font-weight:700;">　　미완결 240건 (8.0%)</span></div>
+          <table>
+            <thead><tr><th>상태 (진행 단계)</th><th class="num">건수</th><th class="num">비율</th></tr></thead>
+            <tbody>
+              <tr><td><span class="st-dot" style="background:var(--green);"></span>완결 (입력+검토+검수 완료)</td><td class="num">2,760건</td><td class="num">92.0%</td></tr>
+              <tr><td><span class="st-dot" style="background:var(--blue);"></span>검수 진행중 (입력+검토 완료)</td><td class="num">180건</td><td class="num">6.0%</td></tr>
+              <tr><td><span class="st-dot" style="background:var(--gold);"></span>검토 진행중 (입력 완료)</td><td class="num">60건</td><td class="num">2.0%</td></tr>
+              <tr><td><span class="st-dot" style="background:#cbd5e1;"></span>입력 진행중</td><td class="num">0건</td><td class="num">0.0%</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Pending -->
+        <div class="card">
+          <h3><span class="ci">⏳</span>공정별 미완료 현황 <span class="cap">(잔여 240건)</span></h3>
+          <div class="pend"><div class="pi">🔍</div><div><div class="pt">검수 미완료</div><div class="ps">(검토 완료 → 검수 대기/진행)</div></div><div class="pv">240<small>건</small></div></div>
+          <div class="pend"><div class="pi">📄</div><div><div class="pt">검토 미완료</div><div class="ps">(입력 완료 → 검토 대기/진행)</div></div><div class="pv">60<small>건</small></div></div>
+          <div class="pend"><div class="pi">⌨️</div><div><div class="pt">입력 미완료</div><div class="ps">(미입력)</div></div><div class="pv">0<small>건</small></div></div>
+        </div>
+
+        <!-- Daily table -->
+        <div class="card">
+          <h3><span class="ci">📅</span>공정별 일자별 작업실적 <span class="cap">(최근 7일)</span></h3>
+          <table>
+            <thead><tr><th>일자</th><th class="num">입력 완료</th><th class="num">검토 완료</th><th class="num">검수 완료</th><th class="num">완성본(누적)</th></tr></thead>
+            <tbody>
+              <tr><td>11-05(목)</td><td class="num">250</td><td class="num">240</td><td class="num">220</td><td class="num">2,520</td></tr>
+              <tr><td>11-06(금)</td><td class="num">320</td><td class="num">310</td><td class="num">300</td><td class="num">2,820</td></tr>
+              <tr><td class="day-sat">11-07(토)</td><td class="num">0</td><td class="num">0</td><td class="num">0</td><td class="num">2,820</td></tr>
+              <tr><td class="day-sun">11-08(일)</td><td class="num">0</td><td class="num">0</td><td class="num">0</td><td class="num">2,820</td></tr>
+              <tr><td>11-09(월)</td><td class="num">180</td><td class="num">170</td><td class="num">160</td><td class="num">2,980</td></tr>
+              <tr><td>11-10(화)</td><td class="num">20</td><td class="num">20</td><td class="num">20</td><td class="num">3,000</td></tr>
+              <tr><td>11-11(수)</td><td class="num">0</td><td class="num">0</td><td class="num">20</td><td class="num">3,000</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="footer">
+        <span class="fi">ℹ ※ 지표 기준 안내</span>
+        <span>• <b>완성본</b>: 입력 → 검토 → 검수를 모두 완료한 1건의 결과물</span>
+        <span>• <b>공정별 완료 건수</b>: 해당 공정을 완료한 작업 건수(최대 3,000건)</span>
+        <span>• <b>완료율</b>: 완성본 완료 건수 ÷ 목표 건수(3,000건)</span>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+/* ---------------- Tab switching ---------------- */
+function switchTab(n){
+  document.getElementById('tabBtn1').classList.toggle('active', n===1);
+  document.getElementById('tabBtn2').classList.toggle('active', n===2);
+  document.getElementById('panel1').classList.toggle('hidden', n!==1);
+  document.getElementById('panel2').classList.toggle('hidden', n!==2);
+}
+if(location.hash === '#tab2'){ switchTab(2); }
+
+/* ---------------- Worker progress table (Tab1) ---------------- */
+const workers = [
+  {rank:1, name:'박지훈', done:1200, rate:96.0, steps:['done','done','wait']},
+  {rank:2, name:'최수연', done:800,  rate:100.0, steps:['done','done','done']},
+  {rank:3, name:'김매니저', done:300, rate:75.0, steps:['done','done','idle']},
+  {rank:4, name:'이지민', done:280,  rate:100.0, steps:['done','done','done']},
+  {rank:5, name:'정현우', done:180,  rate:75.0, steps:['done','done','idle']}
+];
+const stepNames = ['입력','검토','검수'];
+const chipCls = {done:['done','✓'], wait:['wait','⏳'], idle:['idle','○']};
+document.getElementById('workerProg').innerHTML = workers.map(w=>
+  '<tr><td><b>'+w.rank+'. '+w.name+'</b></td>'+
+  '<td><div class="steps">'+w.steps.map((s,i)=>
+      '<span class="chip '+chipCls[s][0]+'">'+chipCls[s][1]+' '+stepNames[i]+'</span>'+
+      (i<2?'<span class="step-line">—</span>':'')).join('')+'</div></td>'+
+  '<td class="num"><b>'+w.done.toLocaleString()+'건</b></td>'+
+  '<td class="num"><div class="rate-mini"><i style="width:'+w.rate+'%"></i></div><span style="font-size:11px;">'+w.rate.toFixed(1)+'%</span></td>'+
+  '<td class="chev">›</td></tr>').join('');
+
+/* ---------------- Worker summary table (Tab1) ---------------- */
+const wsum = [
+  {r:'①',c:'g',name:'박지훈',done:'1,200건',rate:'96.0%',time:'580:10'},
+  {r:'②',c:'s',name:'최수연',done:'800건',rate:'100.0%',time:'392:30'},
+  {r:'③',c:'s',name:'김매니저',done:'300건',rate:'75.0%',time:'183:20'},
+  {r:'④',c:'s',name:'이지민',done:'280건',rate:'100.0%',time:'112:10'},
+  {r:'⑤',c:'s',name:'정현우',done:'180건',rate:'75.0%',time:'88:10'}
+];
+document.getElementById('workerSum').innerHTML = wsum.map(w=>
+  '<tr><td><span class="rank '+w.c+'">'+w.r+'</span></td><td><b>'+w.name+'</b></td>'+
+  '<td class="num">'+w.done+'</td><td class="num">'+w.rate+'</td><td class="num">'+w.time+'</td></tr>').join('');
+
+/* ---------------- Worker process table (Tab1) ---------------- */
+const wproc = [
+  ['박지훈','1,200','1,200','1,200','1,200'],
+  ['최수연','800','800','800','800'],
+  ['김매니저','400','320','300','300'],
+  ['이지민','280','280','280','280'],
+  ['정현우','320','240','180','180']
+];
+document.getElementById('workerProc').innerHTML =
+  wproc.map(r=>'<tr>'+r.map((c,i)=> i===0?'<td><b>'+c+'</b></td>':'<td class="num">'+c+'</td>').join('')+'</tr>').join('')+
+  '<tr class="tsum"><td>합계</td><td class="num">3,000</td><td class="num">2,940</td><td class="num">2,760</td><td class="num">2,760</td></tr>';
+
+/* ---------------- Line chart (pure SVG) ---------------- */
+const labels = ['05-05','05-19','06-02','06-16','06-30','07-14','07-28','08-11','08-25','09-08','09-22','10-06','10-20','11-03','11-11'];
+const target  = [200,400,600,800,1000,1200,1400,1600,1800,2000,2200,2400,2600,2800,3000];
+const done    = [180,350,520,700,880,1050,1230,1400,1580,1760,1950,2140,2330,2550,2760];
+const inputS  = [200,380,560,750,940,1130,1320,1510,1700,1890,2080,2270,2460,2760,3000];
+const reviewS = [190,360,540,720,900,1080,1260,1440,1620,1800,1980,2160,2340,2540,2940];
+const inspectS= done;
+
+function lineChart(elId, series, endTags){
+  const W=560,H=250,L=44,R=52,T=18,B=30;
+  const pw=W-L-R, ph=H-T-B, maxY=3000;
+  const xs=i=> L + pw*i/(labels.length-1);
+  const ys=v=> T + ph*(1-v/maxY);
+  let g='';
+  for(let v=0;v<=3000;v+=500){
+    g+='<line x1="'+L+'" y1="'+ys(v)+'" x2="'+(W-R)+'" y2="'+ys(v)+'" stroke="#eef2f8" stroke-width="1"/>'+
+       '<text x="'+(L-6)+'" y="'+(ys(v)+3.5)+'" font-size="9.5" fill="#94a3b8" text-anchor="end">'+v.toLocaleString()+'</text>';
+  }
+  g+='<text x="10" y="'+(T+4)+'" font-size="9.5" fill="#64748b" font-weight="700">누적 건수</text>';
+  labels.forEach((lb,i)=>{
+    if(i%2===0||i===labels.length-1)
+      g+='<text x="'+xs(i)+'" y="'+(H-10)+'" font-size="8.5" fill="#94a3b8" text-anchor="middle">'+lb+'</text>';
+  });
+  series.forEach((s,si)=>{
+    const pts=s.pts.map((v,i)=>xs(i)+','+ys(v)).join(' ');
+    if(s.area){
+      g+='<polygon points="'+xs(0)+','+ys(0)+' '+pts+' '+xs(s.pts.length-1)+','+ys(0)+'" fill="'+s.color+'18"/>';
+    }
+    if(s.dash){
+      g+='<polyline points="'+pts+'" fill="none" stroke="#94a3b8" stroke-width="2" stroke-dasharray="5 4"/>';
+    }else{
+      g+='<polyline points="'+pts+'" fill="none" stroke="'+s.color+'" stroke-width="2.4"/>';
+      s.pts.forEach((v,i)=>{ g+='<circle cx="'+xs(i)+'" cy="'+ys(v)+'" r="2.6" fill="#fff" stroke="'+s.color+'" stroke-width="1.8"/>'; });
+    }
+  });
+  series.forEach((s,si)=>{
+    const v=s.pts[s.pts.length-1], tag=endTags&&endTags[si];
+    if(tag!==false){
+      g+='<rect x="'+(W-R+2)+'" y="'+(ys(v)-9)+'" width="46" height="17" rx="4" fill="'+s.color+'"/>'+
+         '<text x="'+(W-R+25)+'" y="'+(ys(v)+3.5)+'" font-size="9.5" fill="#fff" font-weight="800" text-anchor="middle">'+v.toLocaleString()+'</text>';
+    }
+  });
+  document.getElementById(elId).innerHTML='<svg width="100%" viewBox="0 0 '+W+' '+H+'" preserveAspectRatio="xMidYMid meet">'+g+'</svg>';
+}
+lineChart('chart1',[
+  {pts:target, color:'#94a3b8', dash:true, area:false},
+  {pts:done,   color:'#2563eb', dash:false, area:true}
+]);
+lineChart('chart2',[
+  {pts:inputS,   color:'#2563eb', area:false},
+  {pts:reviewS,  color:'#22a55b', area:false},
+  {pts:inspectS, color:'#f0a500', area:false}
+]);
+
+/* segment buttons (visual toggle) */
+document.querySelectorAll('.seg').forEach(seg=>{
+  seg.querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>{
+    seg.querySelectorAll('button').forEach(x=>x.classList.remove('on'));
+    b.classList.add('on');
+  }));
+});
+</script>
+<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/vce701823e78c4301a35b7e07294d87301792088814092" integrity="sha512-UKNk8GbxkABxKcXYuLkO16EleLGUkcvJWtpSNmExE0Too3ZaFAxTscNWEc1OdAv5/BikHawapSCaiD2XCmp+Bw==" data-cf-beacon='{"version":"2024.11.0","token":"4edd5f8ec12a48cfa682ab8261b80a79","spa":2}' crossorigin="anonymous"></script>
+</body>
+</html>
